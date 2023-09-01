@@ -5,7 +5,7 @@ y ha pedido a su grupo de ingenieros que diseñen 2 secuencias de luces que cada
 el CPU del microcontrolador, las funciones de retardos que se incorporen deben tener como parametros de entrada variables
 que permitan modificar el tiempo de retardo que se vaya a utilizar finalmente.
 Se pide escribir el código que resuelva este pedido, considerando que los leds se encuentran conectados en los puertos
-P0,0 al P0.9. Adjuntar el archivo .c bajo el nombre "eje1ApellidoDelEstudiante.c"
+P0,0 al P0.9. 
  */
 
 #ifdef __USE_CMSIS
