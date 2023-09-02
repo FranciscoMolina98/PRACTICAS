@@ -42,9 +42,9 @@ int main(void) {
 
 void config_GPIO(){
 
-	LPC_PINCON -> PINSEL0 &= ~(0b3FF<<0);       
+	LPC_PINCON -> PINSEL0 &= ~(0x3FF<<0);       
     //configuramos los pin <P0.9:P0.0> como GPIO
-	LPC_GPIO0  -> FIODIR |= 0b3FF;  
+	LPC_GPIO0  -> FIODIR |= 0x3FF;  
     // P0.0 al P0.9 como salidas;
 }
 
