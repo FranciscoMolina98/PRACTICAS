@@ -11,51 +11,64 @@ P0,0 al P0.9.
 #ifdef __USE_CMSIS
 #include "LPC17xx.h"
 
-// Definición de macros para los puertos y pines de los LEDs
-#define LED_PORT LPC_GPIO0
-#define LED_MASK 0x03FF  // Máscara para los pines P0.0 al P0.9
-	//bits: 0000 0011 1111 1111
-#endif
+#define APAGADO 0b  // 11 1111 1111
+#define IMPAR 0b155 // 01 0101 0101  
+#define PAR 0b2AA   // 10 1010 1010
+
+void config_GPIO();
+void delay (unsigned int count);
+void mostrarPar();
+void mostrarImpar();
 
 
+int main(void) {
+	config_GPIO();
 
-
-int main() {
-    // Inicialización de puertos y pines para los LEDs
-    LED_PORT->FIODIR |= LED_MASK;  // Configurar como entrada/salidas (FIODIR=0: entrada, FIODIR=1: salida)
-    LED_PORT->FIOCLR = LED_MASK;   // Apagar todos los LEDs al inicio
-
-    int delayTime = 500;  // (Se puede igualar a una funcion que devuelva un tiempo?)
-
-    while (1) {
-        encenderSecuenciaA(delayTime);  // Encender secuencia A
-        encenderSecuenciaB(delayTime);  // Encender secuencia B
-    }
-
-    return 0;
+	while(1)
+    {
+        int cant=10;        //Si cambio cant puedo cambiar la duracion de la secuencia
+		for(int i=0; i<cant; cont++)
+        {
+            mostrarPar();   //secuencia par = secuencia A
+		}
+        for(int i=0; i<cant; i++)
+        {
+			mostrarImpar(); ////secuencia impar = secuencia B
+		}
+	}
+    return 0 ;
 }
 
-// Función para generar un retardo aproximado (dependiente de la frecuencia del CPU)
-void delay(int milliseconds) {
-    for (int i = 0; i < milliseconds * 100000; ++i) {
-        __NOP();  // No-operation para generar un retardo
-    }
+
+void config_GPIO(){
+
+	LPC_PINCON -> PINSEL0 &= ~(0b3FF<<0);       
+    //configuramos los pin <P0.9:P0.0> como GPIO
+	LPC_GPIO0  -> FIODIR |= 0b3FF;  
+    // P0.0 al P0.9 como salidas;
 }
 
-// Función para encender los LEDs de la secuencia A
-void encenderSecuenciaA(int delayTime) {
-    for (int i = 0; i < 10; ++i) {
-        LED_PORT->FIOSET = (1 << i);  // Encender el LED correspondiente
-        delay(delayTime);             // Retardo
-        LED_PORT->FIOCLR = (1 << i);  // Apagar el LED correspondiente
-    }
+void mostrarPar () //La secuencia dura aprox 2 delays
+{
+    int count=20;                    //con este valor puedo modificar los tiempos del delay   
+	LPC_GPIO0 -> FIOCLR |= APAGADO;  //Apagamos todos los led
+    delay(count);
+	LPC_GPIO0 -> FIOSET |= PAR;      //Prendemos la configuracion de led de los puertos pares
+    delay(count);
 }
 
-// Función para encender los LEDs de la secuencia B
-void encenderSecuenciaB(int delayTime) {
-    for (int i = 9; i >= 0; --i) {
-        LED_PORT->FIOSET = (1 << i);  // Encender el LED correspondiente
-        delay(delayTime);             // Retardo
-        LED_PORT->FIOCLR = (1 << i);  // Apagar el LED correspondiente
-    }
+void mostrarImpar (const short int secuencia) //La secuencia dura aprox 2 delays
+{
+    int count=20;                   //con este valor puedo modificar los tiempos del delay
+	LPC_GPIO0->FIOCLR |= APAGADO;   //Apagamos todos los leds
+	delay(count);
+    LPC_GPIO0->FIOSET |= IMPAR;     //Prendemos la configuracion impar de leds
+    delay(count);
+}
+
+void delay (unsigned int count)     //cant*(2 delay)=duracion de cada secuencia
+{
+	for(int i=0;i<count;i++){
+		for(int j=0;j<1000;j++);
+	}
 }
