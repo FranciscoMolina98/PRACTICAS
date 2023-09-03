@@ -1,73 +1,117 @@
-/*
-Una famosa empresa de calzados a incorporado a sus zapatillas 10 luces leds comandadas por un microcontrolador LPC1769
-y ha pedido a su grupo de ingenieros que diseñen 2 secuencias de luces que cada cierto tiempo se vayan intercalando
-(secuencia A - secuencia B- secuencia A- ... ). Como todavía no se ha definido la frecuencia a la cual va a funcionar
-el CPU del microcontrolador, las funciones de retardos que se incorporen deben tener como parametros de entrada variables
-que permitan modificar el tiempo de retardo que se vaya a utilizar finalmente.
-Se pide escribir el código que resuelva este pedido, considerando que los leds se encuentran conectados en los puertos
-P0,0 al P0.9. 
- */
+// Ejercicio: P0.22 salida - repetir esta secuencia 11001100 con un periodo de 10 ms
+// P1.0 entrada - cuando detecta un 1, la secuencia cambia a 01010101 y cuando llega otro 10101010 y se vuelve a repetir
 
-#ifdef __USE_CMSIS
+// Ejercicio: P0.22 salida - repetir esta secuencia 11001100 con un periodo de 10 ms
+// P1.0 entrada - cuando detecta un 1, la secuencia cambia a 01010101 y cuando llega otro 10101010 y se vuelve a repetir
+
+// Ejercicio: P0.22 salida - repetir esta secuencia 11001100 con un periodo de 10 ms
+// P1.0 entrada - cuando detecta un 1, la secuencia cambia a 01010101 y cuando llega otro 10101010 y se vuelve a repetir
+
 #include "LPC17xx.h"
 
-#define APAGADO 0x3FF  		// 11 1111 1111
-#define IMPAR 0x155 		// 01 0101 0101  
-#define PAR 0x2AA   		// 10 1010 1010
+#define SEC_1 0b11001100
+#define SEC_2 0b01010101
+#define SEC_3 0b10101010
 
-void config_GPIO(void);
-void delay (unsigned int count);
-void mostrarPar(void);
-void mostrarImpar(void);
+#define P22 (1<<22)
+
+uint8_t currentState;
+short int secuencia_actual = SEC_1;
+
+int aux=0;
+
+void config_GPIO();
+void leer_cambio();
+void mostrarSecuencia(short int secuencia_actual);
+void delay(unsigned int count);
+void rotar();
+void reset();
 
 
-int main(void) {
+
+int main(void){
 	config_GPIO();
 
-	while(1)
-    {
-        int cant=10;        //Si cambio cant puedo cambiar la duracion de la secuencia
-		for(int i=0; i<cant; cont++)
-        {
-            void mostrarPar();   //secuencia par = secuencia A
+	while(1){
+		for(int cont=0; cont<8; cont++){
+			leer_cambio();
+			mostrarSecuencia(secuencia_actual);
+			delay(10);
+			rotar();
 		}
-        for(int i=0; i<cant; i++)
-        {
-			void mostrarImpar(); ////secuencia impar = secuencia B
-		}
+		reset();
 	}
     return 0 ;
 }
 
-
+//Configuro los pines
 void config_GPIO(){
-	LPC_PINCON -> PINSEL0 &= ~(0x3FF<<0);       
-    //configuramos los pin <P0.9:P0.0> como GPIO
-	LPC_GPIO0  -> FIODIR |= 0x3FF;  
-    // P0.0 al P0.9 como salidas;
+	//P0.22: GPIO
+	LPC_PINCON -> PINSEL1 &= ~(3<<12);
+	//P0.22: output
+	LPC_GPIO0  -> FIODIR |= P22;
+
+	//P1.0: GPIO
+	LPC_PINCON -> PINSEL2 &= ~(3<<0);
+	//P1.0: Pull down
+	LPC_PINCON->PINMODE1 &= ~(3 << 0);
+	//P1.0: input
+	LPC_GPIO1  -> FIODIR &= ~(1<<0);
+
 }
 
-void mostrarPar () //La secuencia dura aprox 2 delays
+//Leo el pin P1.0 para ver si fue pulsado, si fue pulsado reconfiguro sino continuo
+void leer_cambio()
 {
-    int count=20;                    	//con este valor puedo modificar los tiempos del delay   
-	LPC_GPIO0 -> FIOCLR |= APAGADO; //Apagamos todos los led
-    delay(count);
-	LPC_GPIO0 -> FIOSET |= PAR;     //Prendemos la configuracion de led de los puertos pares
-    delay(count);
+	currentState = (LPC_GPIO1 -> FIOPIN1 >> 0)  & 1;
+	if(currentState==1){
+		aux++;
+		if(aux>=3){
+			aux=0;
+		}
+		reset();
+	}
+	else{}
 }
 
-void mostrarImpar (const short int secuencia) //La secuencia dura aprox 2 delays
-{
-    int count=20;                   	//con este valor puedo modificar los tiempos del delay
-	LPC_GPIO0->FIOCLR |= APAGADO;   //Apagamos todos los leds
-	delay(count);
-    LPC_GPIO0->FIOSET |= IMPAR;    	//Prendemos la configuracion impar de leds
-    delay(count);
+//miro el ultimo bit y lo mando al puerto P0.22
+void mostrarSecuencia (short int secuencia){
+	// -> (0001 and secuencia == 1) bit lsb
+	if( (1 & secuencia) == 1 )  // viendo el ultimo bit de la secuencia
+	{
+		LPC_GPIO0->FIOCLR |= P22;      //encendemos el led si es 1
+	}else{
+		LPC_GPIO0->FIOSET |= P22;      //apagamos el led si es 0
+	}
 }
 
-void delay (unsigned int count)     	//cant*(2 delay)=duracion de cada secuencia
-{
+//Delaymodificable
+void delay (unsigned int count){
 	for(int i=0;i<count;i++){
 		for(int j=0;j<1000;j++);
 	}
 }
+
+void rotar (){
+	secuencia_actual = secuencia_actual >> 1;
+}
+
+//Cambio la secuencia actualpara ingresar a un nuevo ciclo
+void reset(){
+	if(aux==0){
+			secuencia_actual = SEC_1;
+	}
+	else if (aux==1){
+			secuencia_actual = SEC_2;
+	}
+	else{
+			secuencia_actual= SEC_3;
+	}
+}
+
+
+
+
+
+
+
