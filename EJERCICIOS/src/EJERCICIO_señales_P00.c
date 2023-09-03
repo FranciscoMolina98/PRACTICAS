@@ -1,11 +1,8 @@
-// Ejercicio: P0.22 salida - repetir esta secuencia 11001100 con un periodo de 10 ms
+// Ejercicio: P0.22 salida - repetir esta secuencia 11001100 con un periodo de  x ms
 // P1.0 entrada - cuando detecta un 1, la secuencia cambia a 01010101 y cuando llega otro 10101010 y se vuelve a repetir
+// El sistema repite indefinidamente una secuencia hasta uqe se sensa un 1 en P1.0, y rota entre 3 secuecnias
 
-// Ejercicio: P0.22 salida - repetir esta secuencia 11001100 con un periodo de 10 ms
-// P1.0 entrada - cuando detecta un 1, la secuencia cambia a 01010101 y cuando llega otro 10101010 y se vuelve a repetir
 
-// Ejercicio: P0.22 salida - repetir esta secuencia 11001100 con un periodo de 10 ms
-// P1.0 entrada - cuando detecta un 1, la secuencia cambia a 01010101 y cuando llega otro 10101010 y se vuelve a repetir
 
 #include "LPC17xx.h"
 

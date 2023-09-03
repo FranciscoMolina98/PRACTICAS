@@ -5,111 +5,57 @@ y ha pedido a su grupo de ingenieros que diseñen 2 secuencias de luces que cada
 el CPU del microcontrolador, las funciones de retardos que se incorporen deben tener como parametros de entrada variables
 que permitan modificar el tiempo de retardo que se vaya a utilizar finalmente.
 Se pide escribir el código que resuelva este pedido, considerando que los leds se encuentran conectados en los puertos
-P0,0 al P0.9. 
+P0,0 al P0.9. Adjuntar el archivo .c bajo el nombre "eje1ApellidoDelEstudiante.c"
  */
 
 #ifdef __USE_CMSIS
 #include "LPC17xx.h"
 
-#define SEC_1 0b11001100
-#define SEC_2 0b01010101
-#define SEC_3 0b10101010
-
-#define P22 (1<<22)
-
-uint8_t currentState;
-short int secuencia_actual = SEC_1;
-
-int aux=0;
-
-void config_GPIO();
-void leer_cambio();
-void mostrarSecuencia(short int secuencia_actual);
-void delay(unsigned int count);
-void rotar();
-void reset();
+// Definición de macros para los puertos y pines de los LEDs
+#define LED_PORT LPC_GPIO0
+#define LED_MASK 0x03FF  // Máscara para los pines P0.0 al P0.9
+	//bits: 0000 0011 1111 1111
+#endif
 
 
 
-int main(void){
-	config_GPIO();
 
-	while(1){
-		for(int cont=0; cont<8; cont++){
-			leer_cambio();
-			mostrarSecuencia(secuencia_actual);
-			delay(10);
-			rotar();
-		}
-		reset();
-	}
-    return 0 ;
+int main() {
+    // Inicialización de puertos y pines para los LEDs
+    LED_PORT->FIODIR |= LED_MASK;  // Configurar como entrada/salidas (FIODIR=0: entrada, FIODIR=1: salida)
+    LED_PORT->FIOCLR = LED_MASK;   // Apagar todos los LEDs al inicio
+
+    int delayTime = 500;  // (Se puede igualar a una funcion que devuelva un tiempo?)
+
+    while (1) {
+        encenderSecuenciaA(delayTime);  // Encender secuencia A
+        encenderSecuenciaB(delayTime);  // Encender secuencia B
+    }
+
+    return 0;
 }
 
-//Configuro los pines
-void config_GPIO(){
-	//P0.22: GPIO
-	LPC_PINCON -> PINSEL1 &= ~(3<<12);
-	//P0.22: output
-	LPC_GPIO0  -> FIODIR |= P22;
-
-	//P1.0: GPIO
-	LPC_PINCON -> PINSEL2 &= ~(3<<0);
-	//P1.0: Pull down
-	LPC_PINCON->PINMODE1 &= ~(3 << 0);
-	//P1.0: input
-	LPC_GPIO1  -> FIODIR &= ~(1<<0);
-
+// Función para generar un retardo aproximado (dependiente de la frecuencia del CPU)
+void delay(int milliseconds) {
+    for (int i = 0; i < milliseconds * 100000; ++i) {
+        __NOP();  // No-operation para generar un retardo
+    }
 }
 
-//Leo el pin P1.0 para ver si fue pulsado, si fue pulsado reconfiguro sino continuo
-void leer_cambio()
-{
-	currentState = (LPC_GPIO1 -> FIOPIN1 >> 0)  & 1;
-	if(currentState==1){
-		aux++;
-		if(aux>=3){
-			aux=0;
-		}
-		reset();
-	}
-	else{}
+// Función para encender los LEDs de la secuencia A
+void encenderSecuenciaA(int delayTime) {
+    for (int i = 0; i < 10; ++i) {
+        LED_PORT->FIOSET = (1 << i);  // Encender el LED correspondiente
+        delay(delayTime);             // Retardo
+        LED_PORT->FIOCLR = (1 << i);  // Apagar el LED correspondiente
+    }
 }
 
-//miro el ultimo bit y lo mando al puerto P0.22
-void mostrarSecuencia (short int secuencia){
-	// -> (0001 and secuencia == 1) bit lsb
-	if( (1 & secuencia) == 1 )  // viendo el ultimo bit de la secuencia
-	{
-		LPC_GPIO0->FIOCLR |= P22;      //encendemos el led si es 1
-	}else{
-		LPC_GPIO0->FIOSET |= P22;      //apagamos el led si es 0
-	}
+// Función para encender los LEDs de la secuencia B
+void encenderSecuenciaB(int delayTime) {
+    for (int i = 9; i >= 0; --i) {
+        LED_PORT->FIOSET = (1 << i);  // Encender el LED correspondiente
+        delay(delayTime);             // Retardo
+        LED_PORT->FIOCLR = (1 << i);  // Apagar el LED correspondiente
+    }
 }
-
-//Delaymodificable
-void delay (unsigned int count){
-	for(int i=0;i<count;i++){
-		for(int j=0;j<1000;j++);
-	}
-}
-
-void rotar (){
-	secuencia_actual = secuencia_actual >> 1;
-}
-
-//Cambio la secuencia actualpara ingresar a un nuevo ciclo
-void reset(){
-	if(aux==0){
-			secuencia_actual = SEC_1;
-	}
-	else if (aux==1){
-			secuencia_actual = SEC_2;
-	}
-	else{
-			secuencia_actual= SEC_3;
-	}
-}
-
-
-
