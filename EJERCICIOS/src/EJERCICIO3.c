@@ -12,11 +12,11 @@ variable "acumulador".El valor inicial de "acumulador" es 0.
 #include <stdbool.h>
 
 // Definición de pines
-#define PIN_P04 (4)
-#define PIN_P00 (0)
-#define PIN_P01 (1)
-#define PIN_P02 (2)
-#define PIN_P03 (3)
+#define PIN_P04 (1 << 4)
+#define PIN_P00 (1 << 0)
+#define PIN_P01 (1 << 1)
+#define PIN_P02 (1 << 2)
+#define PIN_P03 (1 << 3)
 
 // Declaro funciones
 void configurarPuerto(void);

@@ -13,9 +13,9 @@ P0,0 al P0.9. Adjuntar el archivo .c bajo el nombre "eje1ApellidoDelEstudiante.c
 
 // Definición de macros para los puertos y pines de los LEDs
 #define LED_PORT LPC_GPIO0
-#define LED_MASK 0x03FF  // Máscara para los pines P0.0 al P0.9
+#define LED_MASK 0x3FF  // Máscara para los pines P0.0 al P0.9
 	//bits: 0000 0011 1111 1111
-#endif
+
 
 
 

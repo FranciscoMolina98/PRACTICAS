@@ -44,16 +44,16 @@ int main(void){
 //Configuro los pines
 void config_GPIO(){
 	//P0.22: GPIO
-	LPC_PINCON -> PINSEL1 &= ~(3<<12);
+	LPC_PINCON -> PINSEL1 &= ~(3 << 12);
 	//P0.22: output
 	LPC_GPIO0  -> FIODIR |= P22;
 
 	//P1.0: GPIO
-	LPC_PINCON -> PINSEL2 &= ~(3<<0);
+	LPC_PINCON -> PINSEL2 &= ~(3 << 0);
 	//P1.0: Pull down
 	LPC_PINCON->PINMODE1 &= ~(3 << 0);
 	//P1.0: input
-	LPC_GPIO1  -> FIODIR &= ~(1<<0);
+	LPC_GPIO1  -> FIODIR &= ~(1 << 0);
 
 }
 
@@ -61,9 +61,9 @@ void config_GPIO(){
 void leer_cambio()
 {
 	currentState = (LPC_GPIO1 -> FIOPIN1 >> 0)  & 1;
-	if(currentState==1){
+	if(currentState == 1){
 		aux++;
-		if(aux>=3){
+		if(aux >= 3){
 			aux=0;
 		}
 		reset();
