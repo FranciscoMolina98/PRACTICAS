@@ -13,5 +13,29 @@ unsigned char numDysplay[10]={0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x
 
 void configGPIO(void);
 void delay(uint32_t times);
+int aux=0;
 
-	pinsel7 = P2[15:0] = 00 //GPIO
+int main{
+	// que valor tiene auxiliar y rectificar si es necesario
+	auxiliar();
+	// mostrar por puerto el valor hexa
+	mostrar();
+	// delay configurable para que se quede un tiempo
+	delay();
+	return 0;
+}
+
+void configGPIO(){
+
+//P2<7:0> output
+}
+
+void mostrar(){
+//muestro el valor esoecifico del arreglo
+}
+
+
+void delay(times){
+
+}
+
