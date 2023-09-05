@@ -1,0 +1,102 @@
+/*
+En este ejemplo simple, se configuraron tres pines del puerto 0 como entradas con interrupciones habilitadas.
+
+En la ISR, se puede ver que en función del pin que genere la interrupción se enciende un led de cada color. 
+
+Los pines que interrumpen son los siguientes:
+	P0.9
+		Entrada digital con pullup, interrumpe por flanco descendente.
+		Al colocar el pin a 3.3V no interrumpe, al poner el pin a GND se produce la interrupción y enciende el led rojo.
+	P0.10
+		Entrada digital con pulldown, interrumpe por flanco ascendente.
+		Al colocar el pin a GND no interrumpe, al poner el pin a 3.3V se produce la interrupción y enciende el led verde.
+	P0.11
+		Entrada digital con pullup, interrumpe por ambos flancos.
+		Inicialmente al colocar el pin a 3.3V no interrumpe debido a que ya se encontraba en estado alto por la pullup. 
+		Al colocar el pin a GND se genera la interrupción por flanco descendente. 
+		Si se saca el pin de GND se producirá una nueva interrupción, ahora por flanco ascendente debido a la pullup. 
+		Se enciende el led Azul.
+ */
+
+#include "LPC17xx.h"
+
+//Salidas
+#define REDLED 		(1<<22)	//P0.22
+#define GREENLED 	(1<<25)	//P3.25
+#define BLUELED 	(1<<26)	//P3.26
+//Pines que van a interrumpir
+#define INPUT1		(1<<9)	//P0.9
+#define INPUT2		(1<<10)	//P0.10
+#define INPUT3		(1<<11)	//P0.11
+
+void configGPIO(void);
+void configGpioInt(void);
+
+int main(void) {
+
+	configGPIO();
+	configGpioInt();
+	LPC_GPIO0->FIOSET |= REDLED; //1
+	LPC_GPIO3->FIOSET &= ~(GREENLED); //0
+	LPC_GPIO3->FIOSET |= BLUELED; //1
+
+	while(1) {
+		//do nothing
+	}
+
+    return 0 ;
+}
+
+// HAndler para la interrupcion EINT3 configurado anteriormente
+void EINT3_IRQHandler(void) {
+	//debounce treating
+
+	if(LPC_GPIOINT->IO0IntStatF & INPUT1) { //P0.9 falling -> Prende led rojo
+		LPC_GPIO0->FIOSET |= REDLED;
+		LPC_GPIO3->FIOCLR |= GREENLED;
+		LPC_GPIO3->FIOCLR |= BLUELED;
+		LPC_GPIOINT->IO0IntClr |= INPUT1;
+	}
+	else if(LPC_GPIOINT->IO0IntStatR & INPUT2) { //P0.10 rising -> prende led verde
+		LPC_GPIO0->FIOCLR |= REDLED;
+		LPC_GPIO3->FIOSET |= GREENLED;
+		LPC_GPIO3->FIOCLR |= BLUELED;
+		LPC_GPIOINT->IO0IntClr |= INPUT2;
+	}
+	else if(LPC_GPIOINT->IO0IntStatF & INPUT3 || LPC_GPIOINT->IO0IntStatR & INPUT3) { //P0.11 falling or rising -> prende led azul
+		LPC_GPIO0->FIOCLR |= REDLED;
+		LPC_GPIO3->FIOCLR |= GREENLED;
+		LPC_GPIO3->FIOSET |= BLUELED;
+		LPC_GPIOINT->IO0IntClr |= INPUT3;
+	}
+}
+
+void configGPIO(void) {
+	/*PINSEL*/
+	LPC_PINCON->PINSEL1 &= ~(0x3<<12); //P0.22 as GPIO
+	LPC_PINCON->PINSEL7 &= ~(0xf<<18); //P3.25,  P3.26 as GPIO
+	LPC_PINCON->PINSEL0 &= ~(0x3f<<18); //P0<11:9> as GPIO
+
+	/*FIODIR*/
+	LPC_GPIO0->FIODIR |= REDLED;    //P0.22 as output
+	LPC_GPIO3->FIODIR |= BLUELED;   //P3.25 as output
+	LPC_GPIO3->FIODIR |= GREENLED;  //P3.25 as output
+	LPC_GPIO0->FIODIR &= ~(INPUT1); //P0.9 as input
+	LPC_GPIO0->FIODIR &= ~(INPUT2); //P0.10 as input
+	LPC_GPIO0->FIODIR &= ~(INPUT3); //P0.11 as input
+
+	LPC_PINCON->PINMODE0 &= ~(0x3<<18); //P0.9 with pull-up   	(1LOGICO)
+	LPC_PINCON->PINMODE0 &= ~(0x3<<22); //P0.11 with pull-up 	(1LOGICO)
+	LPC_PINCON->PINMODE0 |= (0x3<<20);  //P0.10 pull-down		(0LOGICO)
+}
+
+void configGpioInt(void) {
+	//Flancos de interrupcion
+	LPC_GPIOINT->IO0IntEnF |= INPUT1; //P0.9 interrumpe x falling edge
+	LPC_GPIOINT->IO0IntEnR |= INPUT2; //P0.10 interrumpe x rising edge
+	LPC_GPIOINT->IO0IntEnF |= INPUT3;
+	LPC_GPIOINT->IO0IntEnR |= INPUT3; //P0.11 interrumpe x falling/rising edge
+
+	// Habilitamos las interrupciones
+	NVIC_EnableIRQ(EINT3_IRQn); //equivale a ISER0 |= (1<<21) (table 52)
+}
