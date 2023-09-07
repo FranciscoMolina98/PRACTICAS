@@ -1,0 +1,88 @@
+/*
+Realizar un programa que configure el puerto P2.0 y P2.1 para que provoquen una interrupción por flanco 
+de subida para el primer pin y por flanco de bajada para el segundo.
+	- Cuando la interrupción sea por P2.0 se enviará por el pin P0.0 la secuencia de bits 010011010.
+	- Si la interrupción es por P2.1 se enviará por el pin P0.1 la secuencia 011100110.
+	
+Las secuencias se envían únicamente cuando se produce una interrupción, en caso contrario la salida de los
+pines tienen valores 1 lógicos.
+
+¿que prioridad tienen configuradas por defecto estas interrupciones?
+ */
+
+#include "LPC17xx.h"
+
+#define OP00	(1<<0)
+#define OP01	(1<<1)
+#define IP20	(1<<0)
+#define IP21	(1<<1)
+
+
+void configGPIO(void);
+void configGpioInt(void);
+
+int main(void) {
+
+	configGPIO();
+	configGpioInt();
+	LPC_GPIO0->FIOSET OP00;
+	LPC_GPIO0->FIOSET OP01;
+	
+
+	while(1) {
+		//do nothing
+	}
+
+    return 0 ;
+}
+
+void EINT3_IRQHandler(void) {
+	//debounce treating
+
+	if(LPC_GPIOINT->IO0IntStatR & IP20) { //P0.9 rising
+		//Rutina de interrupcion
+	}
+	else if(LPC_GPIOINT->IO0IntStatF & IP21) { //P0.10 falling
+		//Rutina de interrupcion
+	}
+
+}
+
+void configGPIO(void) {
+	/*PINSEL*/
+			//P0<1:0> GPIO
+		LPC_PINCON->PINSEL0 &= ~(0xF<<0); //P0.0 y P0.1 as GPIO
+			//P2<1:0> GPIO
+		LPC_PINCON->PINSEL4 &= ~(0xF<<0); //P2.0 y P2.1 as  GPIO
+	
+	/*FIODIR*/
+			//P0<1:0> as output
+		LPC_GPIO0 -> FIODIR |= OP00; 	//P0.0 as output
+		LPC_GPIO0 -> FIODIR |= OP01;	//P0.1 as output
+			//P2<1:0> as imput
+		LPC_GPIO2 -> FIODIR &= ~(IP20);    //P2.0 as input
+		LPC_GPIO2 -> FIODIR &= ~(IP21);   	//P2.1 as input
+
+		//Configuracion
+			//P2.1 PULL UP (00)
+		LPC_PINCON->PINMODE4 &= ~(0x3 << 2);   // bits 2 y 3 = 00 para que P2.1 (pull-up)
+			//P2.0 PULL DOWN (11)
+		LPC_PINCON->PINMODE4 |= (0x3 << 0);    // bits 0 y 1 = 11 para que P2.0 (pull-down)
+
+	
+}
+
+void configGpioInt(void) {
+	// Interrupcion flanco descendente
+		LPC_GPIOINT -> IO2IntEnF = IP21; 	//P2.1 falling edge interrupt
+	// Interrupcion flanco ascendente
+		LPC_GPIOINT -> IO2IntEnR |= IP20;	//P2.0 rising edge interrupt
+
+
+	NVIC_EnableIRQ(EINT3_IRQn); //ISER0 |= (1<<21) (table 52)
+}
+
+
+
+
+
