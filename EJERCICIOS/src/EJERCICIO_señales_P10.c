@@ -12,7 +12,7 @@
 
 #define P22 (1<<22)
 
-uint8_t currentState;
+uint8_t currentState=0;
 short int secuencia_actual = SEC_1;
 
 int aux=0;
@@ -21,8 +21,7 @@ void config_GPIO();
 void leer_cambio();
 void mostrarSecuencia(short int secuencia_actual);
 void delay(unsigned int count);
-void rotar();
-void reset();
+
 
 
 
@@ -30,13 +29,11 @@ int main(void){
 	config_GPIO();
 
 	while(1){
-		for(int cont=0; cont<8; cont++){
 			leer_cambio();
+			reset(aux);
 			mostrarSecuencia(secuencia_actual);
-			delay(10);
-			rotar();
+			delay(100); //con esto genero un retardo de 1 segundo
 		}
-		reset();
 	}
     return 0 ;
 }
@@ -58,51 +55,46 @@ void config_GPIO(){
 }
 
 //Leo el pin P1.0 para ver si fue pulsado, si fue pulsado reconfiguro sino continuo
-void leer_cambio()
-{
-	currentState = (LPC_GPIO1 -> FIOPIN1 >> 0)  & 1;
+void leer_cambio(){
+	currentState = (LPC_GPIO1 -> FIOPIN >> 0)  & 1;
 	if(currentState == 1){
 		aux++;
 		if(aux >= 3){
 			aux=0;
 		}
-		reset();
 	}
-	else{}
 }
 
 //miro el ultimo bit y lo mando al puerto P0.22
 void mostrarSecuencia (short int secuencia){
-	// -> (0001 and secuencia == 1) bit lsb
-	if( (1 & secuencia) == 1 )  // viendo el ultimo bit de la secuencia
-	{
-		LPC_GPIO0->FIOCLR |= P22;      //encendemos el led si es 1
-	}else{
-		LPC_GPIO0->FIOSET |= P22;      //apagamos el led si es 0
-	}
+		LPC_GPIO1->FIOPIN = ((((secuencia & 0xff) << counter) & 0x80)<<(22-8));
+		counter = (counter==7) ? 0:counter+1;
 }
 
 //Delaymodificable
-void delay (unsigned int count){
-	for(int i=0;i<count;i++){
-		for(int j=0;j<1000;j++);
-	}
-}
-
-void rotar (){
-	secuencia_actual = secuencia_actual >> 1;
-	//
+void delay (unsigned int tiempo){
+	SysTick -> load = 0xF423F; // CARGO (999.999,0) 
+    SysTick -> val = 0;
+    SysTick -> ctrl = (0<<1)|(1<<2)|(1<<0) 
+        //(deshabilito las interrupciones)|
+        //(selecciono cpu clock)
+        //(habilito el contador)
+    
+    for(int i=0 ; i < tiempo ; i++){
+        while(!(SysTick -> CTRL & (1<<16)));
+    }
+    SysTick -> CTRL = 0;
 }
 
 //Cambio la secuencia actualpara ingresar a un nuevo ciclo
-void reset(){
-	if(aux==0){
+void reset(int auxi){
+	if(auxi==0){
 			secuencia_actual = SEC_1;
 	}
-	else if (aux==1){
+	else if (auxi==1){
 			secuencia_actual = SEC_2;
 	}
-	else{
+	else if (auxi==3){
 			secuencia_actual= SEC_3;
 	}
 }
