@@ -45,10 +45,29 @@ void intConfig(void){
 		while(1);
 	}
 
-	/*SysTick->LOAD = ((SystemCoreClock/100)-1);
-	SysTick->CTRL = (1) | (1<<1) | (1<<2);
+		//Para parcial
+	/* 
+  	if (ticks > SysTick_LOAD_RELOAD_Msk)  return (1);            //Reload value impossible
+		
+		//set reload register
+	SysTick->LOAD  = ((SystemCoreClock/100)-1);
+		// set Priority
+	NVIC_SetPriority(SysTick_IRQn,5);
+		// Load the SysTick Counter Value
+  	SysTick->VAL   = 0;
+		//Enable SysTick IRQ and SysTick Timer
+  	SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk   | SysTick_CTRL_ENABLE_Msk;                    
+						
+  	return (0); //Function successful
+}
+
+	
+	SysTick->LOAD = ((SystemCoreClock/100)-1);  //Nos da una interrupcion cada 10ms
+	SysTick->CTRL = (1) | (1<<1) | (1<<2);		
 	SysTick->VAL = 0;
-	NVIC_SetPriority(SysTick_IRQn,5);*/
+	NVIC_SetPriority(SysTick_IRQn,5);
+	
+	*/
 }
 
 void EINT2_IRQHandler(void){

@@ -91,6 +91,7 @@ void delay (unsigned int count){
 
 void rotar (){
 	secuencia_actual = secuencia_actual >> 1;
+	//
 }
 
 //Cambio la secuencia actualpara ingresar a un nuevo ciclo
