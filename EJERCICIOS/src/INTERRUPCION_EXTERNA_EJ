@@ -1,22 +1,41 @@
 /*
+En la ISR, se puede ver que en función del pin que genere la interrupción se enciende un led de cada color. 
+Los pines que interrumpen son los siguientes:
 
+Se usan las interrupciones externas EINT0, EINT1 y EINT2.
+
+Los pines que interrumpen son los siguientes:
+	EINT0
+		Entrada digital con pullup, interrumpe por flanco descendente.
+		Al colocar el pin a 3.3V no interrumpe, al poner el pin a GND se produce la interrupción y enciende el led rojo.
+	EINT1
+		Entrada digital con pulldown, interrumpe por flanco ascendente.
+		Al colocar el pin a GND no interrumpe, al poner el pin a 3.3V se produce la interrupción y enciende el led verde.
+	EINT2
+		Entrada digital con pullup, interrumpe por ambos flancos.
+		Inicialmente al colocar el pin a 3.3V no interrumpe debido a que ya se encontraba en estado alto por la pullup. 
+		Al colocar el pin a GND se genera la interrupción por flanco descendente. 
+		Si se saca el pin de GND se producirá una nueva interrupción, ahora por flanco ascendente debido a la pullup. 
+		Se enciende el led Azul.
  */
 
 #include "LPC17xx.h"
 
-#define OP00	(1<<0)
-#define OP01	(1<<1)
-#define IP20	(1<<0)
-#define IP21	(1<<1)
+#define REDLED 		(1<<22)	//P0.22
+#define GREENLED 	(1<<25)	//P3.25
+#define BLUELED 	(1<<26)	//P3.26
+#define EINT0  		(1<<0)	//P2.10
+#define EINT1		(1<<1)	//P2.11
+#define EINT2		(1<<2)	//P2.12
 
 
 void configGPIO(void);
-void configGpioInt(void);
+void configEINT(void);
 
 int main(void) {
 
 	configGPIO();
-	configGpioInt();
+	configEINT();
 	LPC_GPIO0->FIOSET |= REDLED;
 	LPC_GPIO3->FIOSET |= GREENLED;
 	LPC_GPIO3->FIOSET |= BLUELED;
@@ -28,66 +47,64 @@ int main(void) {
     return 0 ;
 }
 
-void EINT3_IRQHandler(void) {
-	//debounce treating
-
-	if(LPC_GPIOINT->IO0IntStatF & INPUT1) { //P0.9 falling
-		LPC_GPIO0->FIOCLR |= REDLED;
-		LPC_GPIO3->FIOSET |= GREENLED;
-		LPC_GPIO3->FIOSET |= BLUELED;
-		LPC_GPIOINT->IO0IntClr |= INPUT1;
-	}
-	else if(LPC_GPIOINT->IO0IntStatR & INPUT2) { //P0.10 rising
-		LPC_GPIO0->FIOSET |= REDLED;
-		LPC_GPIO3->FIOCLR |= GREENLED;
-		LPC_GPIO3->FIOSET |= BLUELED;
-		LPC_GPIOINT->IO0IntClr |= INPUT2;
-	}
-	else if(LPC_GPIOINT->IO0IntStatF & INPUT3 || LPC_GPIOINT->IO0IntStatR & INPUT3) { //P0.11 falling/rising
-		LPC_GPIO0->FIOSET |= REDLED;
-		LPC_GPIO3->FIOSET |= GREENLED;
-		LPC_GPIO3->FIOCLR |= BLUELED;
-		LPC_GPIOINT->IO0IntClr |= INPUT3;
-	}
-}
-
 void configGPIO(void) {
 	/*PINSEL*/
-			//P0<1:0> GPIO
-		LPC_PINCON->PINSEL0 &= ~(0xF<<0); //P0.0 y P0.1 as GPIO
+	LPC_PINCON->PINSEL1 &= ~(0x3<<12); //P0.22 as GPIO
+	LPC_PINCON->PINSEL7 &= ~(0xf<<18); //P3.25,  P3.26 as GPIO
 
 	/*FIODIR*/
-
-			//P0<1:0> as output
-		LPC_GPIO0 -> FIODIR |= OP00; 	//P0.0 as output
-		LPC_GPIO0 -> FIODIR |= OP01;	//P0.1 as output
+	LPC_GPIO0->FIODIR |= REDLED;    //P0.22 as output
+	LPC_GPIO3->FIODIR |= BLUELED;   //P3.25 as output
+	LPC_GPIO3->FIODIR |= GREENLED;  //P3.25 as output
 
 }
 
-void configGpioInt(void) {
-    
-    LPC_PINCON->PINSEL4 |= (1<<20); //EINT0
+void configEINT(void) {
+		//Para poner EINT, la funcion tiene numero 01
+	LPC_PINCON->PINSEL4 |= (1<<20); //EINT0 
 	LPC_PINCON->PINSEL4 |= (1<<22); //EINT1
 	LPC_PINCON->PINSEL4 |= (1<<24); //EINT2
 
+		// Define si se activa por nivel (0) o por flanco (1)
 	LPC_SC->EXTMODE |= EINT0; //EINT0 edge sensitive
 	LPC_SC->EXTMODE |= EINT1; //EINT1 edge sensitive
 	LPC_SC->EXTMODE |= EINT2; //EINT2 edge sensitive
 
+		// Define si es por bajada o nivel bajo (0), por subida o nivel alto (1) 
 	LPC_SC->EXTPOLAR |= EINT0; //EINT0 rising edge
 	LPC_SC->EXTPOLAR |= EINT1; //EINT1 rising edge
 	LPC_SC->EXTPOLAR &= ~(EINT2); //EINT2 falling edge
 
+		//limpiamos las banderas
 	LPC_SC->EXTINT |= EINT0; //EINT0 clear flag
 	LPC_SC->EXTINT |= EINT1; //EINT1 clear flag
 	LPC_SC->EXTINT |= EINT2; //EINT2 clear flag
 
+		//habilitamos las interrupciones
 	NVIC_EnableIRQ(EINT0_IRQn);
 	NVIC_EnableIRQ(EINT1_IRQn);
 	NVIC_EnableIRQ(EINT2_IRQn);
+
 }
 
+void EINT0_IRQHandler(void) {
+	LPC_GPIO0->FIOCLR |= REDLED;
+	LPC_GPIO3->FIOSET |= GREENLED;
+	LPC_GPIO3->FIOSET |= BLUELED;
+	LPC_SC->EXTINT |= EINT0;
+}
 
+void EINT1_IRQHandler(void) {
+	LPC_GPIO0->FIOSET |= REDLED;
+	LPC_GPIO3->FIOCLR |= GREENLED;
+	LPC_GPIO3->FIOSET |= BLUELED;
+	LPC_SC->EXTINT |= EINT1;
+}
 
-
+void EINT2_IRQHandler(void) {
+	LPC_GPIO0->FIOSET |= REDLED;
+	LPC_GPIO3->FIOSET |= GREENLED;
+	LPC_GPIO3->FIOCLR |= BLUELED;
+	LPC_SC->EXTINT |= EINT2;
+}
 

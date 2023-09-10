@@ -15,9 +15,11 @@ void presionado(int aux);
 
 
 int main(){
-    int aux=0;
+    int aux0=0; //auxiliar para pulsador p0.0
+    int aux1=0; //auxiliar para pulsador p0.1
     configGPIO();
-    presionado();
+    detectar();
+    presionado(aux0,aux1);
     return 0;
 }
 
@@ -29,4 +31,8 @@ void configGPIO(){
     //P0.0 y P0.1 en estado alto (cuando los presion se produce un flanco descendente)
 
 }
+void detectar(){
 
+}
+
+void presionado(){}
