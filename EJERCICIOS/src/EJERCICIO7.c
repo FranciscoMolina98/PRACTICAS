@@ -20,7 +20,6 @@ interrupción externa.
 #endif
 
 uint32_t waveForm = 0xFFFFE00; //1111 1111 1111 1111 1111 1110 0000 0000
-uint32_t waveForm_actual = 0xFFFFE00;
 int aux=0;
 
 void configGPIO(void);
@@ -86,9 +85,9 @@ void configINT(){
 
 void EINT0_IRQHandler(void){
     aux = aux+1;
-    waveForm_actual = (waveForm>>aux);
+    //waveForm_actual = (waveForm>>aux);
     if(aux>9){
-        waveForm_actual=waveForm;
+        //waveForm_actual=waveForm;
         aux=0;
     }
 	LPC_SC->EXTINT |= (1<<0); 			//Clear EINT0 flag
@@ -104,7 +103,7 @@ void SysTick_Handler(void){
 
     if(SysCycle<=aux){
         if(count<=aux){
-	    LPC_GPIO0 -> FIOPIN = ((((waveForm_actual >> count) & 0x200))<<12); //sale por p0.22
+	    LPC_GPIO0 -> FIOPIN = ((((waveForm >> count) & 0x200))<<12); //sale por p0.22
 	    count = (count==9) ? 0:count+1;
         }
     }
