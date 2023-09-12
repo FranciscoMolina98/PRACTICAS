@@ -1,17 +1,11 @@
 /*
-Algoritmo de antirrebote de un pulsador: 
-Escribir un programa en C que ante la interrupción por flanco de subida del pin P0.1, configurado como entrada digital
-con pull-down interno, se incremente un contador de un dígito, se deshabilite esta interrupción y se permita 
-la interrupción por systick cada 20 milisegundos. 
+ P1.16 - P1.23 -> equivalente ascii "a" si la interrupcion es por EINT1 y no hay interrupcion por EINT0
+ P1.16 - P1.23 -> equivalente ascii "A" si la interrupcion es por EINT1 y hay una interrupcion pendiente EINT0
 
-En cada interrupción del systick se testeará una vez el pin P0.1. 
+ flanco de subida EINT1 -> tecla TECLAaA: "a/A"
+ flanco de subida EINT0 -> tecla MAYUS: "Activacion de mayuscula"
 
-Solo para el caso de haber testeado 3 estados altos seguidos se sacará por los pines del puerto P2.0 al P2.7 
-el equivalente en ascii del valor del contador, se desactivará las interrupción por systick y se habilitará 
-nuevamente la interrupción por P0.1. 
-
-Por especificación de diseño se pide que los pines del puerto 2 que no sean utilizados deben estar enmascarados 
-por hardware. Considerar que el CPU se encuentra funcionando con el oscilador interno RC (4Mhz). 
+ interrupciones por nivel alto
 */
 
 
@@ -19,119 +13,89 @@ por hardware. Considerar que el CPU se encuentra funcionando con el oscilador in
 #include "LPC17xx.h"
 #endif
 
-//variables globales
-int set=0;
-int unset=0;
-int contador=0;
+// Definiciones
+#define TECLAaA (1 << 11)
+#define MAYUS (1 << 10)
 
-//funciones
+// Prototipos de funciones
 void configGPIO(void);
 void configINT(void);
-void rectificar(int num);
-void mostrar(int numero);
+void delay(int tiempo);
 
-//programa principal
-int main(){
-    configGPIO();
-    configINT();
+// Programa principal
+int main(void) {
+    configGPIO();  // Configuro las salidas
+    configINT();   // Configuro las interrupciones
 
-    while(1){
-        rectificar(contador);
-        mostrar(contador);
-    };
+    while (1) {
+        // Tu código principal aquí
+    }
+
     return 0;
 }
 
-//funciones
-    //Configuro Puerto de entrada y puertos de salida
-void configGPIO(){
-//P0.1 entrada
-    //PINESL//
-        //p0.22 gpio
-        LPC_PINCON -> PINSEL0 &= ~(0x3<<2);
+// Funciones
 
-    //PINMODE//
-        //p0.1 sin pull-up
-        LPC_PINCON -> PINMODE0 |=(3<<2);
-
-    //FIODIR//
-        //p0.22 entrada
-        LPC_GPIO0 -> FIODIR &=~(1<<1);
-
-//P2.0 al P2.7 salida
-    //PINESL//
-        //P2<7:0> GPIO
-        LPC_PINCON -> PINSEL4 &= ~(0xFFFF<<0);
-
-    //PINMODE//
-        //P2<7:0> sin pull-up
-        LPC_PINCON -> PINMODE4 |=(0xAAAA<<0);
-
-    //FIODIR//
-        //P2<7:0> como salida
-        LPC_GPIO2 -> FIODIR |=(0xFF<<0);
-
-    //FIOMASK//
-        //P2<13:8> (1) no deja modificar (0) deja modificar por fio
-        LPC_GPIO2 -> FIOMASK &=~(0xFF<<0);   //Permite editar P2<7:0>
-        LPC_GPIO2 -> FIOMASK |=(0x3F<<8);    //No permite editar P2<13:8>
+void configGPIO(void) {
+    // P1.16 - P1.23 (8 pines)
+    // PINSEL
+    LPC_PINCON->PINSEL3 &= ~(0xFFFF);   // GPIO
+    // FIODIR
+    LPC_GPIO1->FIODIR |= (0xFF<<16);    // Salidas
 }
 
-    //Configuro las interrupciones por P0.1 y seteo la configuracion del systick
-void configINT(){
-//habilito interrupcion de P0.1 por flanco de subida
-    LPC_GPIOINT -> IO0IntEnR |= (1<<1); //P0.1 interrumpe x rising edge
-}
-    //Handler Interrupciones por GPIO0 que comparte handler con EINT3
-void EINT3_IRQHandler(void){
-    // deshabilito P0.1 interrumpe x rising edge
-    LPC_GPIOINT -> IO0IntEnR &=~(1<<1); 
-    //configuro y activ0 la interrupcion del systick
-        SysTick->LOAD = 0x13498;  //Nos da una interrupcion cada 20ms
-	    SysTick->VAL = 0;
-        SysTick->CTRL = ((1<<0)|(1<<1)|(0<<2)|(0<<16));  //contador deshabilitado, interrupciones deshab, clock externo, sin bandera
-        NVIC_SetPriority(SysTick_IRQn,0);
+void configINT(void) {
+    LPC_PINCON->PINSEL4 |= MAYUS;      // EINT0
+    LPC_PINCON->PINSEL4 |= TECLAaA;    // EINT1
+
+    LPC_PINCON->PINMODE4 &= ~(0xF << 20);   // Pull-Down EINT0 e INT1
+
+    LPC_SC->EXTMODE |= MAYUS;      // EINT0 edge sensitive
+    LPC_SC->EXTMODE |= TECLAaA;    // EINT1 edge sensitive
+
+    LPC_SC->EXTPOLAR |= MAYUS;     // EINT0 rising edge
+    LPC_SC->EXTPOLAR |= TECLAaA;   // EINT1 rising edge
+
+    LPC_SC->EXTINT |= MAYUS;       // EINT0 clear flag
+    LPC_SC->EXTINT |= TECLAaA;     // EINT1 clear flag
+
+    //Seteamos prioridades
+    NVIC_SetPriority(EINT0_IRQn,7);
+    NVIC_SetPriority(EINT1_IRQn,6);
+    //habilitamos las interrupciones
+    NVIC_EnableIRQ(EINT0_IRQn);
+    NVIC_EnableIRQ(EINT1_IRQn);
 }
 
-    //Handler Interrupcion por systick
-void SysTick_Handler(void){
-    //contar 3 veces revisando p0.1
-    //si la cuenta da 3, deshabilito el systick, incremento el contador y lo muestro
-    int pinState = (LPC_GPIO1->FIOPIN & (0x2)) ? 1 : 0;
-            if(pinState==1){
-                set++;
-            }
-            else{
-                unset++
-            }
+// Handler Interrupción EINT0
+void EINT0_IRQHandler(void) {
+    NVIC_SetPendingIRQ(EINT0_IRQn);
+    delay(200);
+    LPC_SC->EXTINT |= MAYUS;
+}
 
-    if(set==3){
-        set=0;
-        contador++;
-        SysTick -> CTRL &= ~((1<<0)|(1<<1));    //deshabilito deshabilito el systick y las interrup
-        LPC_GPIOINT -> IO0IntEnR |= (1<<1);     //Habilito interrupciones del P0.1
+// Handler Interrupción EINT1
+void EINT1_IRQHandler(void) {
+    if (NVIC_GetPendingIRQ(EINT0_IRQn)) {
+        // Imprimo "A" en ASCII
+    } else {
+        // Imprimo "a" en ASCII
     }
-    if(unset==1){
-        unset=0;
-        SysTick -> CTRL &= ~((1<<0)|(1<<1));    //deshabilito deshabilito el systick y las interrup
-        LPC_GPIOINT -> IO0IntEnR |= (1<<1);     //Habilito interrupciones del P0.1
-    }
-    SysTick->CTRL &= SysTick->CTRL; //Clear flag
+    NVIC_ClearPendingIRQ (EINT1_IRQn);
+    NVIC_ClearPendingIRQ (EINT0_IRQn);
+    LPC_SC->EXTINT |= TECLAaA;
 }
 
-    //codigo de Gray va de 0 a 15 en 
-void rectificar(int num){
-    if(num>255){
-        contador=0;
+void delay(int tiempo) {
+    SysTick->LOAD = 0xF423F;  // CARGO (999.999,0)
+    SysTick->VAL = 0;
+    SysTick->CTRL = (0 << 1) | (1 << 2) | (1 << 0);
+    // (deshabilito las interrupciones)|
+    // (selecciono cpu clock)
+    // (habilito el contador)
+
+    for (int i = 0; i < tiempo; i++) {
+        while (!(SysTick->CTRL & (1 << 16)));
     }
-}
-
-    //mostramso el asqui de 8bits
-void mostrar(int numero){
-    unsigned char digito = numero; // Tu número de 8 bits
-
-    // Convertir el número en su representación ASCII
-    char ascii = (char)numero;
-
-    printf("Número en ASCII: %c\n", ascii);
+    SysTick->CTRL = 0;
 }
