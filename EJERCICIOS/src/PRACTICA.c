@@ -17,6 +17,9 @@
 #define TECLAaA (1 << 11)
 #define MAYUS (1 << 10)
 
+//variables globales
+ uint8_t mask = 0x00; // Máscara inicial en cero
+
 // Prototipos de funciones
 void configGPIO(void);
 void configINT(void);
@@ -77,10 +80,13 @@ void EINT0_IRQHandler(void) {
 // Handler Interrupción EINT1
 void EINT1_IRQHandler(void) {
     if (NVIC_GetPendingIRQ(EINT0_IRQn)) {
-        // Imprimo "A" en ASCII
+        mask = 0b01000001; //para "A" en ASCII
     } else {
-        // Imprimo "a" en ASCII
+        mask = 0b01100001; //para "a" en ASCII
     }
+    // Saco lo latra por el puerto
+    LPC_GPIO1->FIOPIN = (mask << 16); // Aplica la máscara a los pines
+
     NVIC_ClearPendingIRQ (EINT1_IRQn);
     NVIC_ClearPendingIRQ (EINT0_IRQn);
     LPC_SC->EXTINT |= TECLAaA;
