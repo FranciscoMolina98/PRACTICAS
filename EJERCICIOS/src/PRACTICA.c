@@ -86,6 +86,7 @@ void EINT1_IRQHandler(void) {
     }
     // Saco lo latra por el puerto
     LPC_GPIO1->FIOPIN = (mask << 16); // Aplica la máscara a los pines
+    delay(100);
 
     NVIC_ClearPendingIRQ (EINT1_IRQn);
     NVIC_ClearPendingIRQ (EINT0_IRQn);
